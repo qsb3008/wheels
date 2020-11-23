@@ -1,55 +1,42 @@
-function createHistory () {
-  class History {
-    constructor () {
-      this.present = {
-        num: null
-      }
-      this.historyCache = {
-        prev: [],
-        current: null,
-        after: []
-      }
-    }
-    push (item) {
-      const { historyCache } = this
-      if (historyCache.current) {
-        const { current } = historyCache
-        historyCache.prev.push(current)
-      }
-      // 第一次添加事件
-      historyCache.current = item
-      // 更新 present
-      this.present.num = historyCache.current.num
-    }
-    undo () {
-      const { historyCache } = this
-      if (historyCache.current && historyCache.prev.length) {
-        historyCache.after.unshift(historyCache.current)
-        historyCache.current = historyCache.prev.pop()
-        this.present.num =  historyCache.current.num
-      }
-    }
-    redo () {
-      const { historyCache } = this
-      if (historyCache.current && historyCache.after.length) {
-        const newCur = historyCache.after.shift()
-        const cur = historyCache.current
-        historyCache.prev.push(cur)
-        historyCache.current = newCur
-        this.present.num =  historyCache.current.num
-      }
-    }
+module.exports = createHistory = () => {
+  const timeline = {};
+  timeline.past = [];
+  timeline.futrue = [];
 
-    gotoState (index) {
-      const { prev, current, after } = this.historyCache
-      const allState = [...prev, current, ...after]
-      this.historyCache.current = allState[index]
-      this.historyCache.prev = allState.slice(0, index)
-      this.historyCache.after = allState.slice(index + 1)
-      this.present.num =  this.historyCache.current.num
-    }
+  timeline.gotoState = (index) => {
+    const { past, futrue, present } = timeline
+    const allState = [ ...past, present, ...futrue ]
+    
+    timeline.present = allState[index]
+    timeline.past = allState.slice(0, index)
+    timeline.futrue = allState.slice(index + 1)
+  }
 
-  }  
-  return new History()
-}
-module.exports = createHistory;
+  timeline.getIndex = () => {
+    return timeline.past.length
+  }
+
+  // 保存当前状态
+  timeline.push = (currentState) => {
+    // 将状态都保存，并更新当前状态
+    if (timeline.present) {
+      timeline.past.push(timeline.present);
+    }
+    timeline.present = currentState;
+  }
+  // 后退
+  timeline.undo = () => {
+    if (timeline.past.length !== 0) {
+      timeline.gotoState(timeline.getIndex() - 1);
+    }
+  };
+
+  // 前进
+  timeline.redo = () => {
+    if (timeline.futrue.length !== 0) {
+      timeline.gotoState(timeline.getIndex() + 1);
+    }
+  };
+
+  return timeline;
+};
